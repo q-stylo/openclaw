@@ -1,0 +1,150 @@
+# Dependencies & Package Managers
+node_modules/
+.pnpm-store/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build Outputs & Bundling
+dist/
+dist-runtime/
+**/dist/
+*.tsbuildinfo
+.tsbuildinfo
+.build/
+*.bun-build
+.openclaw-lifecycle-pending
+
+# Test & Coverage Outputs
+coverage/
+*.lcov
+test-results/
+playwright-report/
+blob-report/
+__openclaw_vitest__/
+.vitest/
+
+# Repository Build Caches & Artifacts
+.artifacts/
+.cache/
+.eslintcache/
+.tmp/
+.tmp-*/
+tmp/
+temp/
+
+# Environment Variables, Secrets & Local Overrides
+.env
+.env.*
+!.env.example
+*.env.local
+*.local
+.local/
+local.properties
+LocalSigning.xcconfig
+**/LocalSigning.xcconfig
+helper-ipc-key
+*.pem
+*.key
+*.cert
+*.p12
+*.pfx
+
+# Git & Worktrees
+.worktrees/
+.ci-harness/
+
+# Runtime State, Databases & Logs
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite-journal
+*.db
+*.db-shm
+*.db-wal
+*.sock
+/openclaw.json
+*.log
+
+# Always track test fixtures
+!test/fixtures/**
+
+# Documentation Baseline Artifacts (see docs/.generated/README.md)
+docs/.generated/config-baseline.json
+docs/.generated/config-baseline.core.json
+docs/.generated/config-baseline.channel.json
+docs/.generated/config-baseline.plugin.json
+
+# Rust & Cargo
+target/
+**/target/
+
+# Apple / iOS / macOS (Xcode & SwiftPM)
+.swiftpm/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+apps/ios/OpenClaw.xcodeproj/
+*.hmap
+*.ipa
+*.dSYM/
+*.dSYM.zip
+*.xcplayground
+playground.xcworkspace
+timeline.xctimeline
+Carthage/Build/
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Android & Gradle
+.gradle/
+**/build/
+**/*.iml
+*.apk
+*.aab
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# QA & Convex
+.convex/
+qa/convex-credential-broker/convex/_generated/
+
+# IDEs & Editors
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.sublime-project
+*.sublime-workspace
+.claude/
+.cursor/
+
+# Operating System Files
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*~
