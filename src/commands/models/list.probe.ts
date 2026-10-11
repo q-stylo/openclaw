@@ -819,6 +819,17 @@ async function probeTarget(params: {
         abortSignal: params.abortSignal,
       }),
     );
+    // A provider "length" stop proves the request was authenticated and served;
+    // reasoning models often spend the small probe budget before visible text.
+    if (
+      runResult.meta?.error?.kind === "incomplete_turn" &&
+      runResult.meta.error.providerStopReason === "length"
+    ) {
+      return buildResult(
+        "ok",
+        `Reply truncated at the ${maxTokens}-token probe limit; raise --probe-max-tokens to see a full reply.`,
+      );
+    }
     const terminalError = extractAgentRunTerminalError(runResult);
     if (terminalError) {
       throw new Error(terminalError);
