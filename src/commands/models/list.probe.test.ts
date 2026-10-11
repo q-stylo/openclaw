@@ -280,6 +280,29 @@ describe("runAuthProbes", () => {
     });
   });
 
+  it("reports ok when the provider truncates the probe reply at the token limit", async () => {
+    await withProbeRuntime("profile", async ({ probe, runner }) => {
+      const incomplete = (providerStopReason?: string): AgentRunResultView => ({
+        payloads: [{ text: "Agent couldn't generate a response.", isError: true }],
+        meta: {
+          error: {
+            kind: "incomplete_turn",
+            message: "Agent couldn't generate a response.",
+            ...(providerStopReason ? { providerStopReason } : {}),
+          },
+        },
+      });
+      const input = probeInput({ options: { profileIds: ["openai:profile"] } });
+      runner.mockResolvedValueOnce(incomplete("length"));
+      expect((await probe.runAuthProbes(input)).results[0]).toMatchObject({
+        status: "ok",
+        error: expect.stringContaining("8-token probe limit"),
+      });
+      runner.mockResolvedValueOnce(incomplete());
+      expect((await probe.runAuthProbes(input)).results[0]?.status).not.toBe("ok");
+    });
+  });
+
   it("preserves provider config while suppressing profiles for a config-key target", async () => {
     await withProbeRuntime("literal", async ({ probe, runner, upsert, clearSnapshot }) => {
       const providerConfig = {

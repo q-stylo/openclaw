@@ -139,7 +139,11 @@ describe("terminal auth resolution", () => {
       return;
     }
     expect(resolved.result.payloads?.[0]).toMatchObject({ isError: true });
-    expect(resolved.result.meta.error?.kind).toBe("incomplete_turn");
+    expect(resolved.result.meta.error).toMatchObject({
+      kind: "incomplete_turn",
+      providerStopReason: "length",
+    });
+    expect(resolved.result.meta.stopReason).toBeUndefined();
     expect(resolved.result.meta.livenessState).toBe("abandoned");
     expect(maybeMarkAuthProfileFailure).toHaveBeenCalledWith({
       profileId: "openai:default",

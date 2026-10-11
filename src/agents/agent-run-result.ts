@@ -40,7 +40,7 @@ export type AgentRunResultView = {
     finalAssistantVisibleText?: string;
     finalAssistantRawText?: string;
     livenessState?: string;
-    error?: { kind?: string; message?: string };
+    error?: { kind?: string; message?: string; providerStopReason?: string };
   };
 };
 

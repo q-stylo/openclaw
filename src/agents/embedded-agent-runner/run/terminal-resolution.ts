@@ -507,6 +507,9 @@ async function completeEmbeddedRun(
           ),
           fallbackSafe: input.incompleteTurnFallbackSafe ?? false,
           terminalPresentation: input.terminalToolPresentation !== undefined,
+          ...(input.attemptAssistant?.stopReason
+            ? { providerStopReason: String(input.attemptAssistant.stopReason) }
+            : {}),
         }
       : undefined;
   const incompleteTurnText = input.incompleteTurnText ?? error?.message ?? null;

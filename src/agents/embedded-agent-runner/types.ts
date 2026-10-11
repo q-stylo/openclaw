@@ -203,6 +203,11 @@ export type EmbeddedAgentRunMeta = {
     fallbackSafe?: boolean;
     /** True when the payload includes a trusted structured terminal tool summary. */
     terminalPresentation?: boolean;
+    /**
+     * Stop reason the provider reported for the final assistant attempt (e.g. "length").
+     * Diagnostic only: run-level `stopReason` stays absent on error results.
+     */
+    providerStopReason?: string;
   };
   failureSignal?: EmbeddedRunFailureSignal;
   /** Bounded, sanitized unresolved Code Mode failure for operator diagnostics. */
