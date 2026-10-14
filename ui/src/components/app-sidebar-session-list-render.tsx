@@ -144,6 +144,8 @@ function renderSessionCatalog(params: {
     get liveRows() {
       return snapshot().liveRows;
     },
+    isRunVisuallyActive: (row) =>
+      host().sessionDataContext?.sessions.isRunVisuallyActive(row) ?? false,
     renderLiveRow: (row, display) =>
       renderRecentSession({
         get host() {
