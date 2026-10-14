@@ -105,6 +105,8 @@ async function createSessionFromTool(
     runError?: { code: string; message: string };
   }>({
     method: "sessions.create",
+    // Creation can commit before kickoff settles; keep waiting for its receipt.
+    timeoutMs: null,
     params: request,
     sessionCreation: {
       via: "operator",

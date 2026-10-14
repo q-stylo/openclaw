@@ -72,6 +72,8 @@ describe("spawn input ownership transfer", () => {
   });
 
   it.for([
+    "slow acceptance",
+    "slow kickoff failure",
     "before acceptance",
     "after acceptance",
     "guest after acceptance",
