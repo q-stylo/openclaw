@@ -17,7 +17,7 @@ export class WorkboardStoreRuntime {
     Promise<
       WorkboardListResult & {
         boards: WorkboardBoardSummary[];
-        revision: WorkboardChange & { boardId?: string };
+        revision: WorkboardChange & { boardId?: string; sessionKey?: string };
       }
     >
   >();
@@ -27,25 +27,42 @@ export class WorkboardStoreRuntime {
   private closePromise: Promise<void> | undefined;
   private sealed = false;
   protected cardsRevision: WorkboardChange = { epoch: randomUUID(), revision: 1 };
+  private sessionBoardRevision: WorkboardChange = { epoch: this.cardsRevision.epoch, revision: 1 };
+  private writeToken: string | undefined;
   private revision = 0;
-  private externalDataVersion: number | undefined;
   private readonly listeners = new Set<(change: WorkboardChange) => void>();
   private readonly initialization: Promise<void>;
 
   constructor(
-    private readonly readDataVersion?: () => number | Promise<number>,
     private readonly closePersistence?: () => void | Promise<void>,
-    ready?: Promise<number>,
+    ready?: Promise<void>,
     private readonly runWithWriteAuthority?: WorkboardWriteAuthority,
+    private readonly readWriteToken?: () => string | undefined,
   ) {
-    this.initialization = Promise.resolve(ready ?? readDataVersion?.()).then((version) => {
-      this.externalDataVersion = version;
-    });
+    this.initialization = ready ?? Promise.resolve();
     void this.initialization.catch(() => {});
   }
 
   ready(): Promise<void> {
     return this.runOperation(() => undefined);
+  }
+
+  get sessionsRevision(): WorkboardChange {
+    this.refreshWriteReceipt();
+    return this.sessionBoardRevision;
+  }
+
+  protected refreshWriteReceipt(): string | undefined {
+    if (!this.readWriteToken) {
+      return "local";
+    }
+    const current = this.readWriteToken();
+    if (current === undefined || current !== this.writeToken) {
+      this.writeToken = current;
+      this.invalidateCards();
+      this.invalidateSessionBoards();
+    }
+    return current;
   }
 
   async runOperation<T>(run: () => T | Promise<T>): Promise<T> {
@@ -89,19 +106,24 @@ export class WorkboardStoreRuntime {
 
   protected track<T>(
     store: WorkboardKeyedStore<T>,
-    { notifyChanges = true }: { notifyChanges?: boolean } = {},
+    {
+      notifyChanges = true,
+      sessions = false,
+    }: { notifyChanges?: boolean; sessions?: boolean } = {},
   ): WorkboardKeyedStore<T> {
     return {
       register: (key, value) =>
         this.trackMutation(
           () => store.register(key, value),
           () => notifyChanges,
+          sessions,
         ),
       lookup: (key) => this.runOperation(() => store.lookup(key)),
       delete: (key) =>
         this.trackMutation(
           () => store.delete(key),
           (deleted) => deleted && notifyChanges,
+          sessions,
         ),
       entries: () => this.runOperation(() => store.entries()),
     };
@@ -132,13 +154,26 @@ export class WorkboardStoreRuntime {
   protected trackMutation<T>(
     run: () => Promise<T>,
     changed: (result: T) => boolean = Boolean,
+    sessions = false,
   ): Promise<T> {
     return this.runOperation(async () => {
-      const result = await run();
-      if (changed(result)) {
+      try {
+        const result = await run();
+        if (changed(result)) {
+          this.invalidateCards();
+          if (sessions) {
+            this.invalidateSessionBoards();
+          }
+        }
+        return result;
+      } catch (error) {
+        // A rejected reply may follow a commit. Retire cached facts without replaying the write.
         this.invalidateCards();
+        if (sessions) {
+          this.invalidateSessionBoards();
+        }
+        throw error;
       }
-      return result;
     });
   }
 
@@ -147,24 +182,15 @@ export class WorkboardStoreRuntime {
     return () => this.listeners.delete(listener);
   }
 
-  announceChangeEpoch(): void {
-    this.emit();
+  invalidateSessionBoards(): void {
+    this.sessionBoardRevision = {
+      ...this.sessionBoardRevision,
+      revision: this.sessionBoardRevision.revision + 1,
+    };
   }
 
-  reconcileExternalChanges(): Promise<boolean> {
-    return this.runOperation(async () => {
-      if (!this.readDataVersion) {
-        return false;
-      }
-      const current = await this.readDataVersion();
-      if (current === this.externalDataVersion) {
-        return false;
-      }
-      this.externalDataVersion = current;
-      this.invalidateCards();
-      this.emit();
-      return true;
-    });
+  announceChangeEpoch(): void {
+    this.emit();
   }
 
   protected async enqueueMutation<T>(
@@ -172,8 +198,8 @@ export class WorkboardStoreRuntime {
     assertCurrent?: () => void,
   ): Promise<T> {
     return await this.runOperation(async () => {
-      const runAndNotify = async () =>
-        await this.withMutationAuthority(async () => await this.runMutation(run), assertCurrent);
+      const runAndNotify = () =>
+        this.withMutationAuthority(() => this.runMutation(run), assertCurrent);
       const result = this.mutationQueue.then(runAndNotify, runAndNotify);
       this.mutationQueue = result.then(
         () => undefined,
@@ -209,16 +235,18 @@ export class WorkboardStoreRuntime {
 
   private invalidateCards(): void {
     // Every list includes all board summaries, so even a board-scoped payload
-    // depends on the whole store revision, including foreign SQLite commits.
+    // depends on the whole store revision published by the owning writer.
     this.cardLists.clear();
     this.cardsRevision = { ...this.cardsRevision, revision: this.cardsRevision.revision + 1 };
   }
 
   private emit(): void {
+    this.refreshWriteReceipt();
     const change = {
       epoch: this.cardsRevision.epoch,
       revision: ++this.revision,
       cardsRevision: this.cardsRevision.revision,
+      sessionsRevision: this.sessionBoardRevision.revision,
     };
     for (const listener of this.listeners) {
       try {
