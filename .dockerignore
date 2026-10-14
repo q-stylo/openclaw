@@ -1,0 +1,19 @@
+# Dependencies anywhere in the tree
+**/node_modules
+**/.pnpm-store
+
+# Build outputs anywhere in the tree
+**/dist
+**/dist-runtime
+
+# Git & caches
+.git
+.artifacts
+.cache
+.tmp
+
+# Host state and secrets
+.openclaw
+.env
+.env.*
+*.log

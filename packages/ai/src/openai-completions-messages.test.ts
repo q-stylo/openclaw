@@ -633,7 +633,7 @@ describe("convertMessages relocatable region", () => {
           { type: "text", text: "Runtime facts" },
         ],
       },
-      { role: "system", content: "OpenClaw runtime context:\nlater context" },
+      { role: "user", content: "OpenClaw runtime context:\nlater context" },
     ]);
     expect(cacheOptOutIndexes).toEqual(new Set([3, 4]));
   });
@@ -657,7 +657,7 @@ describe("convertMessages relocatable region", () => {
 
     expect(converted).toEqual([
       { role: "system", content: "Stable prefix" },
-      { role: "system", content: "legacy plugin runtime context" },
+      { role: "user", content: "legacy plugin runtime context" },
     ]);
     expect(cacheOptOutIndexes).toEqual(new Set([1]));
   });
@@ -890,4 +890,45 @@ describe("convertMessages relocatable region", () => {
     ]);
     expect(cacheOptOutIndexes.size).toBe(0);
   });
+
+  it("uses developer role for mid-conversation runtime context when supported and user role when unsupported", () => {
+    const context: Context = {
+      systemPrompt: "System instructions",
+      messages: [
+        { role: "user", content: "hello", timestamp: 1 },
+        {
+          role: "user",
+          content: "Runtime context update",
+          timestamp: 2,
+          runtimeContext: {},
+        },
+      ],
+    };
+
+    // Unsupported developer role (e.g. Qwen on vLLM/DigitalOcean)
+    const convertedUnsupported = convertMessages(
+      model,
+      context,
+      { ...compat(), supportsDeveloperRole: false },
+    );
+    expect(convertedUnsupported).toEqual([
+      { role: "system", content: "System instructions" },
+      { role: "user", content: "hello" },
+      { role: "user", content: "Runtime context update" },
+    ]);
+
+    // Supported developer role on reasoning model (e.g. native OpenAI)
+    const reasoningModel: Model<"openai-completions"> = { ...model, reasoning: true };
+    const convertedSupported = convertMessages(
+      reasoningModel,
+      context,
+      { ...compat(), supportsDeveloperRole: true },
+    );
+    expect(convertedSupported).toEqual([
+      { role: "developer", content: "System instructions" },
+      { role: "user", content: "hello" },
+      { role: "developer", content: "Runtime context update" },
+    ]);
+  });
 });
+
