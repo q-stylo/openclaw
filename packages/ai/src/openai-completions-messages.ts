@@ -118,8 +118,14 @@ export function convertMessages(
     }
 
     if (isRuntimeContextMessage(msg)) {
+      const role =
+        model.reasoning && compat.supportsDeveloperRole
+          ? "developer"
+          : params.length === 0
+            ? "system"
+            : "user";
       params.push({
-        role: model.reasoning && compat.supportsDeveloperRole ? "developer" : "system",
+        role,
         content: sanitizeSurrogates(runtimeContextContentToText(msg.content)),
       });
       options.cacheOptOutIndexes?.add(params.length - 1);

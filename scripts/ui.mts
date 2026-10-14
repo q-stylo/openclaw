@@ -357,6 +357,11 @@ function renameWithRetry(from: string, to: string): void {
       fs.renameSync(from, to);
       return;
     } catch (error) {
+      if (hasErrorCode(error, "EXDEV")) {
+        fs.cpSync(from, to, { recursive: true });
+        fs.rmSync(from, { recursive: true, force: true });
+        return;
+      }
       const delay = PUBLISH_RENAME_DELAYS_MS[attempt];
       if (
         delay === undefined ||
